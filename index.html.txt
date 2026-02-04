@@ -1,0 +1,121 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { gsap } from 'gsap';
+import confetti from 'canvas-confetti';
+import Background from './components/Background';
+import ProgressBar from './components/ProgressBar';
+import StepOne from './steps/StepOne';
+import StepTwo from './steps/StepTwo';
+import StepThree from './steps/StepThree';
+import StepFour from './steps/StepFour';
+import StepFive from './steps/StepFive';
+
+export enum StepId {
+  WELCOME = 1,
+  BIRTHDAY = 2,
+  BENTO = 3,
+  MEMORY = 4,
+  FINALE = 5
+}
+
+const App: React.FC = () => {
+  const [currentStep, setCurrentStep] = useState<StepId>(StepId.WELCOME);
+  const [isCelebrating, setIsCelebrating] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const stepRef = useRef<HTMLDivElement>(null);
+
+  const nextStep = () => {
+    if (currentStep < 5) {
+      const tl = gsap.timeline();
+      tl.to(stepRef.current, {
+        opacity: 0,
+        scale: 0.95,
+        y: -20,
+        duration: 0.4,
+        ease: 'power2.in',
+        onComplete: () => {
+          setCurrentStep((prev) => (prev + 1) as StepId);
+        }
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (stepRef.current) {
+      gsap.fromTo(stepRef.current, 
+        { opacity: 0, scale: 1.05, y: 30 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.6, ease: 'power3.out' }
+      );
+    }
+  }, [currentStep]);
+
+  const handleCelebrate = () => {
+    setIsCelebrating(true);
+    
+    // Confetti logic
+    const duration = 5 * 1000;
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
+
+    const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+    const interval: any = setInterval(function() {
+      const timeLeft = animationEnd - Date.now();
+
+      if (timeLeft <= 0) {
+        return clearInterval(interval);
+      }
+
+      const particleCount = 50 * (timeLeft / duration);
+      
+      // Bursts from corners
+      confetti({
+        ...defaults,
+        particleCount,
+        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+        colors: ['#ff1e56', '#ff8a00', '#f9ed69'],
+      });
+      confetti({
+        ...defaults,
+        particleCount,
+        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+        colors: ['#711a94', '#0072ff', '#00c6ff'],
+      });
+
+      // Emoji shower
+      confetti({
+        ...defaults,
+        particleCount: 2,
+        scalar: 2,
+        shapes: ['text'],
+        shapeOptions: {
+          text: {
+            value: ['❤️', '💖', '✨', '🎉'],
+          },
+        },
+        origin: { x: Math.random(), y: 0 }
+      });
+    }, 250);
+  };
+
+  return (
+    <div className="relative w-full h-screen overflow-hidden text-white" ref={containerRef}>
+      <Background isEnding={isCelebrating} />
+      
+      <ProgressBar current={currentStep} total={5} />
+
+      <main className="flex items-center justify-center w-full h-full px-6 py-12">
+        <div ref={stepRef} className="w-full max-w-2xl">
+          {currentStep === StepId.WELCOME && <StepOne onNext={nextStep} />}
+          {currentStep === StepId.BIRTHDAY && <StepTwo onNext={nextStep} />}
+          {currentStep === StepId.BENTO && <StepThree onNext={nextStep} />}
+          {currentStep === StepId.MEMORY && <StepFour onNext={nextStep} />}
+          {currentStep === StepId.FINALE && (
+            <StepFive isCelebrating={isCelebrating} onCelebrate={handleCelebrate} />
+          )}
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default App;
